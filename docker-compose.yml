@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  app:
+    image: webdevops/php-nginx:8.4
+    container_name: simple-saas-app
+    working_dir: /app
+    volumes:
+      - ./backend:/app
+    ports:
+      - "80:80"
+    environment:
+      - WEB_DOCUMENT_ROOT=/app/public
+    networks:
+      - app-network
+    depends_on:
+      - mysql
+
+  mysql:
+    image: mysql:8.0
+    container_name: simple-saas-mysql
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-simple-saas}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-root}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-simple-saas-pass}
+      MYSQL_USER: ${DB_USERNAME:-simple-saas-user}
+    volumes:
+      - db-data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: simple-saas-phpmyadmin
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+    ports:
+      - "8080:80"
+    networks:
+      - app-network
+    depends_on:
+      - mysql
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  db-data:
+    driver: local
